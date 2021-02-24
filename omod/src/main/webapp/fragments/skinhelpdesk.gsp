@@ -4,7 +4,11 @@
 <% ui.includeCss("skinhelpdesk", "kitchensink.css") %>
 
 <!-- Include Custom Scripts -->
-<% ui.includeJavascript("skinhelpdesk", "angular.min.js") %>
+<%
+    ui.includeJavascript("uicommons", "angular.js")
+    ui.includeJavascript("uicommons", "ngDialog/ngDialog.js")
+    ui.includeCss("uicommons", "ngDialog/ngDialog.min.css")
+%>
 <% ui.includeJavascript("skinhelpdesk", "fabric.js") %>
 <% ui.includeJavascript("skinhelpdesk", "paster.js") %>
 <% ui.includeJavascript("skinhelpdesk", "font_definitions.js") %>
@@ -32,10 +36,12 @@ jQuery(document).ready(function() {
         var patientid = ${ patient.id };
         var imagemap = getLocation();
         jQuery.post('${ ui.actionLink("putMap") }', { returnFormat: 'json', patientId: patientid, lesionmap: imagemap },
-                function(data) {
-                    response = data.message;
-                    jQuery("#responds").empty();
-                    jQuery("#responds").append(response);
+                function (data) {
+                    if (data.indexOf("${MESSAGE_SUCCESS}") >= 0) {
+                        jq().toastmessage('showSuccessToast', "Image Saved.");
+                    } else {
+                        jq().toastmessage('showErrorToast', "Error. Please try again after page refresh");
+                    }
                 })
                 .error(function() {
                     notifyError("Programmer error: delete identifier failed");
@@ -44,6 +50,31 @@ jQuery(document).ready(function() {
     });
 
 
+    jQuery("#FormReset").click(function (e) {
+
+        e.preventDefault();
+        var result = confirm("Want to reset? All data on canvas for this patient will be lost!")
+        if (result) {
+            var patientid = ${ patient.id };
+            var imagemap = "-"; //Blank Imagemap
+            jQuery.post('${ ui.actionLink("putMap") }', {
+                        returnFormat: 'json',
+                        patientId: patientid,
+                        lesionmap: imagemap
+                    },
+                    function (data) {
+                        if (data.indexOf("${MESSAGE_SUCCESS}") >= 0) {
+                            jq().toastmessage('showSuccessToast', "Image Reset.");
+                            location.reload();
+                        } else {
+                            jq().toastmessage('showErrorToast', "Error. Please try again after page refresh");
+                        }
+                    })
+                    .error(function () {
+                        notifyError("Programmer error: delete identifier failed");
+                    })
+        }
+    });
 
     jQuery("#FormLoad").click(function (e) {
 
@@ -62,20 +93,20 @@ jQuery(document).ready(function() {
 
 </script>
 
-
-
-
 <div ng-app="kitchensink">
    <div style="position:relative;width:600px;float:left;" id="canvas-wrapper" ng-controller="CanvasControls">
-
-            <canvas id="canvas" width="490" height="415"></canvas>
+<div class="info-header">
+        <i class="icon-camera-retro"></i>
+        <h3>LesionMap</h3>
+</div>
+            <canvas id="canvas" width="600" height="500"></canvas>
 
 
         <div id="color-opacity-controls" ng-show="canvas.getActiveObject()">
             <label for="opacity">Opacity: </label>
-            <input value="100" type="range" bind-value-to="opacity">
+            <input id="opacity" value="100" type="range" bind-value-to="opacity">
             <label for="color" style="margin-left:10px">Color: </label>
-            <input type="color" style="width:40px" bind-value-to="fill">
+            <input id="color" type="color" style="width:40px" bind-value-to="fill">
         </div>
 
         <div id="text-wrapper" style="margin-top: 10px" ng-show="getText()">
@@ -112,8 +143,10 @@ jQuery(document).ready(function() {
                             <button type="button" id ="ulcer" class="btn-xlarge" ng-click="addImage16()">Ulcer</button>
                             <button type="button" id ="scar" class="btn-xlarge" ng-click="addImage17()">Scar</button>
                             <button type="button" id ="purpura" class="btn-xlarge" ng-click="addImage18()">Purpura</button>
+                            <!--
                             <button type="button" id ="user1" class="btn-xlarge" ng-click="addImageUser1()">User1</button>
                             <button type="button" id ="user2" class="btn-xlarge" ng-click="addImageUser2()">User2</button>
+                            -->
                             <br>
                                 <button type="button" id ="i_updown" class="btn-xlarge" ng-click="addImage20()">Up/Down</button>
                                 <button type="button" id ="i_koebner" class="btn-xlarge" ng-click="addImage21()">Koebner</button>
@@ -124,26 +157,23 @@ jQuery(document).ready(function() {
                                 <button type="button" id ="i_central" class="btn-xlarge" ng-click="addImage26()">Central</button>
                 </p>
 
-                     <button type="button" class="button" id="FormLoad">Load</button>
+            <div id="FormLoad"></div>
+            <button type="button" class="button" id="FormReset">Reset</button>
                     <button class="button" id="FormSave" ng-click="rasterizeJSON()">SAVE</button>
                     <button class="button" ng-click="addText()">Add text</button>
                 	<button class="button [secondary success alert]" ng-click="confirmClear()">Clear canvas</button>
 
                     <div id="FormDisplay" ng-click="loadSVG()"></div>
-        </div>
+        
 
-
-
-
-
-	<div id="drawing-mode-wrapper">
+	       <div id="drawing-mode-wrapper">
         	<button id="drawing-mode" class="button"
           		ng-click="setFreeDrawingMode(!getFreeDrawingMode())"
           		ng-class="{'btn-inverse': getFreeDrawingMode()}">
           			{[ getFreeDrawingMode() ? 'Exit free drawing mode' : 'Enter free drawing mode' ]}
         	</button>
 
-		<div id="drawing-mode-options" ng-show="getFreeDrawingMode()">
+		    <div id="drawing-mode-options" ng-show="getFreeDrawingMode()">
                 	<label for="drawing-mode-selector">Mode:</label>
                                             <select id="drawing-mode-selector" bind-value-to="drawingMode">
                                                 <option>Pencil</option>
@@ -162,8 +192,11 @@ jQuery(document).ready(function() {
 			<input type="color" value="#005E7A" bind-value-to="drawingLineColor"><br>
 			<label for="drawing-shadow-width">Line shadow width:</label>
 			<input type="range" value="0" min="0" max="50" bind-value-to="drawingLineShadowWidth">
-                </div><!-- DRAWING MODE OPTION-->
-    </div><!-- DRAWING MODE WRAPPER-->
+            </div><!-- DRAWING MODE OPTION-->
+            </div><!-- DRAWING MODE WRAPPER-->
+
+        </div>
+
    	<p><div id="responds"></div></p>
 
    </div> <!-- canvas-wrapper -->
@@ -172,7 +205,7 @@ jQuery(document).ready(function() {
 <script>
   var kitchensink = { };
   var canvas = new fabric.Canvas('canvas');
-  canvas.setBackgroundImage('/openmrs/ms/uiframework/resource/skinhelpdesk/lesions/body.jpeg',        canvas.renderAll.bind(canvas));
+  canvas.setBackgroundImage('../../ms/uiframework/resource/skinhelpdesk/lesions/body.jpeg',        canvas.renderAll.bind(canvas));
 
 </script>
 

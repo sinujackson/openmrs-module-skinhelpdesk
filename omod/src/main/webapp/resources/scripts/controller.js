@@ -10,6 +10,7 @@ function getActiveStyle(styleName, object) {
 
 function addWatermark() {
   //code
+  /*
      var lm_wm = 'Created with LesionMapper(TM): http://skinhelpdesk.com ';
      canvas.add(new fabric.IText(lm_wm, {
       fontFamily: 'Verdana',
@@ -18,7 +19,7 @@ function addWatermark() {
       fillStyle: 'yellow',
       top: 0 ,
     }));
-    
+  */  
 
 
 }
@@ -302,7 +303,7 @@ function addAccessors($scope) {
   function addImage(imageName, minScale, maxScale) {
     var coord = getRandomLeftTop();
 
-    fabric.Image.fromURL('/openmrs/ms/uiframework/resource/skinhelpdesk/lesions/' + imageName, function(image) {
+    fabric.Image.fromURL('../../ms/uiframework/resource/skinhelpdesk/lesions/' + imageName, function(image) {
 
       image.set({
         left: getRandomInt(50, 200),
